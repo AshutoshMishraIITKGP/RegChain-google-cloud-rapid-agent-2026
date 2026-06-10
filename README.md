@@ -4,7 +4,7 @@
 [![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
 [![React Flow](https://img.shields.io/badge/React_Flow-11-ff0072)](https://reactflow.dev/)
 [![Google ADK](https://img.shields.io/badge/Google_Agent_SDK-Active-4285F4)](https://cloud.google.com/)
-[![Gemini 2.5 Flash](https://img.shields.io/badge/Gemini-2.5_Flash-8E75B2)](https://deepmind.google/technologies/gemini/)
+[![Gemini 2.5 Pro](https://img.shields.io/badge/Gemini-2.5_Flash-8E75B2)](https://deepmind.google/technologies/gemini/)
 [![Elastic MCP](https://img.shields.io/badge/Elastic_MCP-Active-005571)](https://www.elastic.co/)
 
 ---

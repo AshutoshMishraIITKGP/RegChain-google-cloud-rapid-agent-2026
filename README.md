@@ -50,55 +50,44 @@ Analyze Mode turns the knowledge graph into a powerful querying and reasoning en
 
 ## Architecture
 
-RegChain employs a modern, agentic architecture decoupling the user interface, the reasoning engine, and the knowledge store.
+RegChain employs a modern architecture decoupling the user interface, the graph database, and the reasoning engine.
 
 ```mermaid
 graph TD
     A["User"] -->|"Interacts"| B("Next.js UI & React Force Graph")
-    B -->|"API Calls"| C{"Google ADK Agent Orchestrator"}
-    C -->|"Multi-step Reasoning"| D["Gemini 2.5 Flash"]
-    C -->|"Tool Execution"| E["Elastic MCP Client"]
-    E -->|"JSON-RPC via stdio/HTTP"| F["Elastic MCP Server"]
-    F -->|"Graph Retrieval & Search"| G[("Elasticsearch")]
-    G -->|"Living State"| H(("Compliance Graph"))
+    B -->|"API Calls"| C{"Next.js Backend"}
+    C -->|"Graph Retrieval"| D[("Elasticsearch")]
+    D -->|"Bounded Subgraph"| E["@google/genai SDK"]
+    E -->|"Single Context Dump"| F["Gemini 2.5 Pro"]
+    F -->|"Compliance Analysis"| B
 ```
 
 ### Frontend
 * **Next.js & React:** Provides a snappy, SSR-optimized web interface.
 * **React Force Graph (2D/3D):** Renders the complex compliance graph with customized D3 physics to ensure disparate subgraphs remain highly visible and disjoint.
 
-### Backend
-* **Next.js API Routes:** Acts as the secure middleware connecting the frontend to the Agent Layer and Elastic.
+### Backend & Knowledge Layer
+* **Next.js API Routes:** Acts as the secure middleware connecting the frontend to the AI and Elastic layers.
+* **Elasticsearch:** Acts as the highly scalable backend storing all nodes (entities) and edges (relationships).
 
-### Knowledge Layer
-* **Elasticsearch:** Acts as the highly scalable, vector-capable backend storing all nodes (entities) and edges (relationships).
-
-### AI & Agent Layer
-* **Google ADK (Agent Development Kit):** Orchestrates the AI agent's execution loop.
-* **Gemini 2.5 Flash:** Provides rapid, high-context reasoning for graph traversal and gap analysis.
-* **Context Assembly:** The agent dynamically determines which tools to call based on the user's natural language intent.
-
-### MCP Layer (Model Context Protocol)
-We utilize the **Elastic MCP** standard to decouple the AI's tool execution from the raw database layer.
-* **Server Connection:** The Next.js backend spins up an MCP client that connects to a dedicated Elastic MCP server.
-* **Tool Exposure:** The MCP server securely exposes specific graph traversal tools to the Gemini agent (e.g., `get_node_neighborhood`, `search_compliance_gaps`).
-* **Why MCP?:** This ensures the LLM does not need to write raw Elasticsearch DSL queries. Instead, it interacts with strongly-typed MCP tools, drastically reducing hallucinations and preventing destructive database operations.
+### AI Engine (Gemini 2.5 Pro)
+Rather than relying on high-latency multi-step agent orchestration, RegChain utilizes a **Single-Shot Context Dump Architecture** powered by the `@google/genai` SDK and Gemini 2.5 Pro.
+* **Query Translation (Gemini 2.5 Flash):** Translates the user's natural language into optimal Elasticsearch queries.
+* **Bounded Subgraph Retrieval:** The backend rapidly retrieves the relevant subgraph and all interconnected edges directly from Elasticsearch.
+* **Holistic Reasoning (Gemini 2.5 Pro):** The entire bounded subgraph is dumped into the massive context window of Gemini 2.5 Pro. This allows the model to reason holistically over the entire compliance posture in a single pass, resulting in dramatically faster and more coherent compliance reports without the latency of multi-step tool calling.
 
 ---
 
-## Google Cloud & Hackathon Requirements
+## Google Cloud & Hackathon Integration
 
-### Use of Google Cloud Agent Builder Ecosystem
-RegChain is fundamentally built around the **Google ADK**. 
-* **Agent Orchestration:** We use the ADK to define the primary `ComplianceCopilot` agent.
-* **Gemini Integration:** The agent is powered by **Gemini 2.5 Flash**, chosen for its massive context window and lightning-fast reasoning speeds—crucial for graph traversal.
-* **Tool Calling:** The ADK handles the complex multi-step reasoning loop, routing user intents to the correct Elastic MCP tools, parsing the output, and synthesizing compliance reports.
+### Deep Integration with Google GenAI
+RegChain is fundamentally built around the **`@google/genai` SDK** utilizing Vertex AI mappings.
+* **Gemini 2.5 Pro:** Used for the heavy lifting. By dumping the Elasticsearch graph directly into Gemini 2.5 Pro's massive context window, the model can instantly detect orphaned controls, trace compliance impacts, and propose new nodes without iterative tool-calling limits.
+* **Gemini 2.5 Flash:** Used as a high-speed pre-processor to translate user intents into exact Elasticsearch DSL queries.
 
-### Use of Elastic MCP
-RegChain heavily leverages the **Model Context Protocol** to interface with Elasticsearch.
-* **Persistent Memory:** Elasticsearch acts as the permanent brain of the application.
-* **MCP Integration:** The Google ADK Agent is augmented with tools exposed exclusively through the Elastic MCP server. 
-* **Search Operations:** When the user asks "Show me all vendor risks," the Agent triggers the MCP `search_nodes` tool. The MCP server translates this, executes the Elastic query, and returns structured context to Gemini.
+### Deep Integration with Elasticsearch
+* **Living Knowledge Graph:** Elasticsearch acts as the permanent brain of the application, storing thousands of interconnected compliance entities.
+* **Context Assembly:** When the user asks a question, the Next.js backend leverages the Elastic client to pull a structured "bounded subgraph" which is directly fed to Gemini.
 
 ---
 

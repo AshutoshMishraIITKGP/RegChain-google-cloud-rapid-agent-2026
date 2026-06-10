@@ -54,13 +54,13 @@ RegChain employs a modern, agentic architecture decoupling the user interface, t
 
 ```mermaid
 graph TD
-    A[User] -->|Interacts| B(Next.js UI & React Force Graph)
-    B -->|API Calls| C{Google ADK Agent Orchestrator}
-    C -->|Multi-step Reasoning| D[Gemini 2.5 Flash]
-    C -->|Tool Execution| E[Elastic MCP Client]
-    E -->|JSON-RPC via stdio/HTTP| F[Elastic MCP Server]
-    F -->|Graph Retrieval & Search| G[(Elasticsearch)]
-    G -->|Living State| H((Compliance Graph))
+    A["User"] -->|"Interacts"| B("Next.js UI & React Force Graph")
+    B -->|"API Calls"| C{"Google ADK Agent Orchestrator"}
+    C -->|"Multi-step Reasoning"| D["Gemini 2.5 Flash"]
+    C -->|"Tool Execution"| E["Elastic MCP Client"]
+    E -->|"JSON-RPC via stdio/HTTP"| F["Elastic MCP Server"]
+    F -->|"Graph Retrieval & Search"| G[("Elasticsearch")]
+    G -->|"Living State"| H(("Compliance Graph"))
 ```
 
 ### Frontend
@@ -150,14 +150,24 @@ Imagine you are a Compliance Officer joining a new fintech startup:
 ### Environment Variables
 Create a `.env.local` file in the root directory:
 ```bash
-# Google Cloud
-GOOGLE_APPLICATION_CREDENTIALS=./gcp-key.json
-GEMINI_API_KEY=your_gemini_api_key
+# RegChain Environment Variables
 
-# Elastic
-ELASTIC_NODE=http://localhost:9200
-ELASTIC_USERNAME=elastic
-ELASTIC_PASSWORD=changeme
+# Elasticsearch
+ELASTIC_URL=https://your-elastic-cloud-deployment.es.us-central1.gcp.elastic.cloud:443
+ELASTIC_API_KEY=your_elastic_api_key
+
+# Elastic Agent Builder MCP Server
+ELASTIC_MCP_URL=https://your-elastic-cloud-deployment.kb.us-central1.gcp.elastic.cloud/api/agent_builder/mcp
+
+# Google Cloud ADK / Agent Builder
+GOOGLE_APPLICATION_CREDENTIALS=./gcp-key.json
+PROJECT_ID=your-gcp-project-id
+LOCATION=us-central1
+
+# Google GenAI SDK Vertex mappings
+GOOGLE_GENAI_USE_VERTEXAI=true
+GOOGLE_CLOUD_PROJECT=your-gcp-project-id
+GOOGLE_CLOUD_LOCATION=us-central1
 ```
 
 ### Installation & Setup

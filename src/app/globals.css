@@ -1479,3 +1479,8 @@ a:hover {
 .toast.error { border-left: 3px solid var(--danger); }
 .toast.warning { border-left: 3px solid var(--warning); }
 .toast.info { border-left: 3px solid var(--info); }
+
+/* Hide AI Copilot Chain-of-Thought tags */
+thinking {
+  display: none;
+}

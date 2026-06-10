@@ -298,46 +298,39 @@ export default function GraphCanvas() {
       let attempts = 0;
       const MIN_DIST = 50; // Minimum distance between nodes
       
-      while (!placed && attempts < 100) {
-        let overlap = false;
-        for (const other of nodes) {
-          if (other.id === ghostNode.id) continue;
-          
-          let ox = undefined, oy = undefined;
-          if (other.fx !== undefined && other.fy !== undefined) {
-             ox = other.fx; oy = other.fy;
-          } else if (other.x !== undefined && other.y !== undefined) {
-             ox = other.x; oy = other.y;
-          }
-          
-          if (ox !== undefined && oy !== undefined) {
-             const dist = Math.hypot(finalX - ox, finalY - oy);
-             if (dist < MIN_DIST) {
-                 overlap = true;
-                 break;
-             }
+      while (!placed && attempts < 50) {
+        let collision = false;
+        for (let i = 0; i < nodes.length; i++) {
+          const other = nodes[i];
+          if (other.id !== ghostNode.id) {
+            const ox = other.fx !== undefined ? other.fx : (other.x || cx);
+            const oy = other.fy !== undefined ? other.fy : (other.y || cy);
+            if (Math.hypot(finalX - ox, finalY - oy) < MIN_DIST) {
+              collision = true;
+              break;
+            }
           }
         }
         
-        if (overlap) {
-            angle += 0.8; // Rotate
-            radius += 4;  // Spiral outward slightly with each attempt
-            finalX = cx + Math.cos(angle) * radius;
-            finalY = cy + Math.sin(angle) * radius;
-            attempts++;
+        if (!collision) {
+          placed = true;
         } else {
-            placed = true;
+          angle += 0.5; // spiral outwards
+          radius += 5;
+          finalX = cx + Math.cos(angle) * radius;
+          finalY = cy + Math.sin(angle) * radius;
+          attempts++;
         }
       }
 
-      ghostNode.fx = finalX;
-      ghostNode.fy = finalY;
       ghostNode.x = finalX;
       ghostNode.y = finalY;
+      ghostNode.fx = finalX; // Pin it slightly so d3 doesn't throw it immediately
+      ghostNode.fy = finalY;
     });
 
-    return { nodes, links };
-  }, [state.entities, state.relationships, state.searchQuery, state.categoryFilter, state.pendingSuggestions]);
+    return { nodes: [...nodes], links: [...links], _sessionTrigger: state.activeAnalysisSession?._sessionId };
+  }, [state.entities, state.relationships, state.searchQuery, state.categoryFilter, state.pendingSuggestions, state.activeAnalysisSession]);
 
   // Highlight selected node's neighborhood
   useEffect(() => {
@@ -418,6 +411,10 @@ export default function GraphCanvas() {
           edgeSet.add(String(r.id).toLowerCase().trim());
         }
       });
+
+      console.log('[DEBUG GraphCanvas] vEdges raw:', vEdges);
+      console.log('[DEBUG GraphCanvas] edgeSet final:', Array.from(edgeSet));
+      console.log('[DEBUG GraphCanvas] Sample link IDs:', state.relationships.slice(0, 3).map(r => r.id));
 
       setAiHighlightNodes(nodeSet);
       setAiHighlightLinks(edgeSet);

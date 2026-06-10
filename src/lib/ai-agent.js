@@ -99,7 +99,12 @@ IMPORTANT RULES FOR JSON:
 1. Only include the SPECIFIC node and edge IDs that were critical to your analysis.
 2. WARNING: NEVER hallucinate IDs from the Chat History! You MUST only use exact IDs that are explicitly present in the CURRENT "FULL KNOWLEDGE GRAPH" provided to you. If you mention an entity, use its exact 'id' field from the graph data.
 3. CRITICAL: If you are identifying a "gap" or something missing, DO NOT invent fake IDs for the missing nodes/edges. Instead, your JSON must strictly contain the IDs of the EXISTING nodes and edges that formed the BASIS of your conclusion (i.e., the surrounding context).
-4. The queries you would recieve would sometimes be analysis based, so include the subgraph/subgraphs which you used to get the analysis done (e.g. to identify a gap, you explored the regulation, the system and policies and found that the regulation isn't fully satisifed by those nodes, include the nodes you used to do the research and then show the user that how it isn't satisfied with the existing nodes and edges), don't change the context of the user query`;
+4. To traverse the graph effectively:
+1. Identify starting nodes using \`platform_core_search\` (index: regchain-entities) based on the user's query keywords.
+2. IMPORTANT: You MUST use \`platform_core_execute_esql\` to find relationships between nodes and traverse the graph paths.
+   Example ES|QL: FROM regchain-relationships | WHERE source == "NODE-ID" OR target == "NODE-ID"
+3. DO NOT rely solely on node descriptions. You must physically invoke the ES|QL tool to verify if edges exist.
+4. Extract the exact IDs of any nodes and edges you discover and use them in your final answer.`;
 
 export async function processAIChat(userMessage, history = [], mode = 'build', fileData = null) {
   const ai = getGenAI();
@@ -128,95 +133,109 @@ Output only the string:`;
     console.warn("[STAGE 1] Translation failed, falling back to raw query.", e);
   }
 
-  // --- STAGE 2: FULL GRAPH RETRIEVAL (GLM Architecture) ---
+  // --- STAGE 2: ADK AGENT ORCHESTRATION ---
+  let textOutput = '';
+  let parsedData = null;
   const visitedNodes = new Set();
   const visitedEdges = new Set();
-  let subgraphText = "--- FULL KNOWLEDGE GRAPH ---\nNodes:\n";
-
+  
   try {
-    const esClient = getElasticClient();
+    const { Agent, Gemini } = await import('@google/adk');
+    const { regchainTools } = await import('./agent-tools.js');
     
-    // Fetch all entities (up to 500)
-    const searchRes = await esClient.search({
-      index: ENTITY_INDEX,
-      size: 500,
-      body: { query: { match_all: {} } }
+    // Clear global session tracking before starting
+    global._activeToolSession = {
+      visitedNodes: new Set(),
+      visitedEdges: new Set()
+    };
+
+    let historyText = history.length > 0 
+      ? "Chat History:\n" + history.map(m => `${m.sender?.toUpperCase() || m.role?.toUpperCase()}: ${m.text || m.content}`).join('\n') + "\n\n"
+      : "";
+
+    const systemInstruction = mode === 'build' ? BUILD_SYSTEM_PROMPT : ANALYZE_SYSTEM_PROMPT;
+    
+    // Explicitly instruct the agent to use tools
+    const instructions = `${systemInstruction}\n\nCRITICAL: You DO NOT have the graph data yet! You MUST use your provided tools (e.g., search_graph) to retrieve the relevant compliance nodes. VERY IMPORTANT: Once you find nodes, you MUST use 'find_neighbors' or 'graph_path' to explicitly fetch their connecting edges! If you do not query the edges, the Graph UI will not draw any lines between the nodes. Do NOT skip this step!`;
+    
+    const fullPrompt = `${historyText}USER: ${userMessage}`;
+    
+    console.log("[AI Copilot] Starting Native GenAI Multi-step Agent Loop with ADK Tools...");
+    
+    // Transform ADK FunctionTools to GenAI FunctionDeclarations safely
+    // ADK 1.2.0 exposes _getDeclaration() to properly serialize Zod parameters into JSON Schema
+    const functionDeclarations = regchainTools.map(t => typeof t._getDeclaration === 'function' ? t._getDeclaration() : {
+      name: t.name,
+      description: t.description,
+      parameters: t.parameters
     });
 
-    let nodeHits = searchRes.hits?.hits || [];
-    nodeHits.forEach(hit => {
-      visitedNodes.add(hit._id || hit._source.id);
-      subgraphText += JSON.stringify(hit._source) + "\n";
+    const chat = ai.chats.create({
+      model: 'gemini-2.5-pro',
+      config: {
+        systemInstruction: instructions,
+        tools: [{ functionDeclarations }],
+        temperature: 0.2
+      }
     });
 
-    // Fetch all relationships (up to 1000)
-    const relRes = await esClient.search({
-      index: RELATIONSHIP_INDEX,
-      size: 1000,
-      body: { query: { match_all: {} } }
-    });
-
-    let edgeHits = relRes.hits?.hits || [];
-    subgraphText += "\nRelationships:\n";
-    edgeHits.forEach(hit => {
-      if (hit._source && hit._source.source && hit._source.target) {
-        // ONLY include edges if BOTH source and target nodes ACTUALLY exist in the graph!
-        if (visitedNodes.has(hit._source.source) && visitedNodes.has(hit._source.target)) {
-          visitedEdges.add(hit._id || hit._source.id);
-          subgraphText += JSON.stringify(hit._source) + "\n";
+    // Native multi-step orchestration (GenAI automatically executes function calls and loops)
+    let agentResponse;
+    const maxRetries = 3;
+    let attempt = 0;
+    
+    while (attempt < maxRetries) {
+      try {
+        agentResponse = await chat.sendMessage({ message: fullPrompt });
+        
+        // Handle explicit tool calls if GenAI doesn't auto-resolve them (SDK 0.1.x behavior)
+        while (agentResponse.functionCalls && agentResponse.functionCalls.length > 0) {
+          console.log(`[AI Copilot] Agent executing ${agentResponse.functionCalls.length} parallel ADK tools...`);
+          const functionResponses = [];
+          
+          for (const call of agentResponse.functionCalls) {
+            const tool = regchainTools.find(t => t.name === call.name);
+            if (tool) {
+              const result = await tool.execute(call.args);
+              functionResponses.push({
+                functionResponse: {
+                  name: call.name,
+                  response: result && typeof result === 'object' ? result : { result }
+                }
+              });
+            }
+          }
+          
+          agentResponse = await chat.sendMessage({ message: functionResponses });
+        }
+        
+        textOutput = agentResponse.text;
+        break;
+      } catch (e) {
+        attempt++;
+        const errString = e.message || e.toString();
+        if (errString.includes('429') || errString.includes('Resource exhausted') || e.status === 429) {
+          console.warn(`[GenAI] Hit 429 rate limit. Backing off attempt ${attempt}...`);
+          if (attempt >= maxRetries) throw new Error("Google GenAI rate limit exceeded.");
+          await new Promise(res => setTimeout(res, 4000 * Math.pow(2, attempt)));
         } else {
-          console.warn(`[AI Copilot] Ignored dangling edge: ${hit._source.source} -> ${hit._source.target}`);
+          throw e; // Bubble up other errors immediately
         }
       }
-    });
-
-    if (visitedNodes.size === 0) {
-      subgraphText = "No relevant compliance graph data found.";
     }
+    
+    console.log("[AI Copilot] Multi-step Agent Loop Complete.");
 
-
-  } catch (e) {
-    console.error("Bounded Retrieval Error:", e);
-    subgraphText = "Error retrieving graph context.";
-  }
-
-  // --- STAGE 3: DEEP REASONING (gemini-2.5-pro) ---
-  let historyText = history.length > 0 
-    ? "Chat History:\n" + history.map(m => `${m.sender?.toUpperCase() || m.role?.toUpperCase()}: ${m.text || m.content}`).join('\n') + "\n\n"
-    : "";
-
-  const systemInstruction = mode === 'build' ? BUILD_SYSTEM_PROMPT : ANALYZE_SYSTEM_PROMPT;
-  const fullPrompt = `${systemInstruction}\n\n${subgraphText}\n\n${historyText}USER: ${userMessage}`;
-
-  const contentsPayload = fileData ? [fileData, fullPrompt] : fullPrompt;
-
-  const maxRetries = 5;
-  let attempt = 0;
-  let textOutput = '';
-
-  while (attempt < maxRetries) {
-    try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-pro',
-        contents: contentsPayload,
-      });
-      textOutput = response.text;
-      break; // Success!
-    } catch (error) {
-      attempt++;
-      const errString = error.message || error.toString();
-      if (errString.includes('429') || errString.includes('Resource exhausted') || error.status === 429) {
-        console.warn(`[GenAI] Hit 429 rate limit. Backing off attempt ${attempt}...`);
-        if (attempt >= maxRetries) throw new Error("Google GenAI error: " + errString);
-        await new Promise(res => setTimeout(res, 3000 * Math.pow(2, attempt)));
-      } else {
-        throw new Error("Google GenAI error: " + errString);
-      }
-    }
+    // Sync the tracked tools session to our local sets
+    global._activeToolSession.visitedNodes.forEach(n => visitedNodes.add(n));
+    global._activeToolSession.visitedEdges.forEach(e => visitedEdges.add(e));
+    
+  } catch (error) {
+    console.error("[AI Copilot] ADK Agent Orchestration Error:", error);
+    textOutput = "Error: The AI Copilot encountered a problem during multi-step reasoning. " + error.message;
   }
 
   // 4. RESPONSE FORMATTING
-  let parsedData = null;
   let cleanMessage = textOutput;
 
   // Extract JSON payload if present
@@ -231,23 +250,10 @@ Output only the string:`;
   }
 
   if (!parsedData) parsedData = { visited_nodes: [], visited_edges: [] };
-  if (!Array.isArray(parsedData.visited_nodes)) parsedData.visited_nodes = [];
-  if (!Array.isArray(parsedData.visited_edges)) parsedData.visited_edges = [];
-
-  // Deduplicate and filter out hallucinated IDs that aren't in the actual graph!
-  parsedData.visited_nodes = [...new Set(parsedData.visited_nodes)]
-    .filter(id => {
-      const match = Array.from(visitedNodes).some(vid => String(vid).toLowerCase().trim() === String(id).toLowerCase().trim());
-      if (!match) console.warn(`[AI Copilot] Stripped hallucinated node ID: ${id}`);
-      return match;
-    });
-
-  parsedData.visited_edges = [...new Set(parsedData.visited_edges)]
-    .filter(id => {
-      const match = Array.from(visitedEdges).some(vid => String(vid).toLowerCase().trim() === String(id).toLowerCase().trim());
-      if (!match) console.warn(`[AI Copilot] Stripped hallucinated edge ID: ${id}`);
-      return match;
-    });
+  
+  // Merge the dynamically tracked tools context into the parsed output
+  parsedData.visited_nodes = [...new Set([...(parsedData.visited_nodes || []), ...Array.from(visitedNodes)])];
+  parsedData.visited_edges = [...new Set([...(parsedData.visited_edges || []), ...Array.from(visitedEdges)])];
 
   // Remove <thinking> blocks entirely
   cleanMessage = cleanMessage.replace(/<thinking>([\s\S]*?)<\/thinking>/g, '').trim();

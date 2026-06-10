@@ -70,11 +70,11 @@ graph TD
 * **Next.js API Routes:** Acts as the secure middleware connecting the frontend to the AI and Elastic layers.
 * **Elasticsearch:** Acts as the highly scalable backend storing all nodes (entities) and edges (relationships).
 
-### AI Engine (Gemini 2.5 Pro)
-Rather than relying on high-latency multi-step agent orchestration, RegChain utilizes a **Single-Shot Context Dump Architecture** powered by the `@google/genai` SDK and Gemini 2.5 Pro.
-* **Query Translation (Gemini 2.5 Flash):** Translates the user's natural language into optimal Elasticsearch queries.
-* **Bounded Subgraph Retrieval:** The backend rapidly retrieves the relevant subgraph and all interconnected edges directly from Elasticsearch.
-* **Holistic Reasoning (Gemini 2.5 Pro):** The entire bounded subgraph is dumped into the massive context window of Gemini 2.5 Pro. This allows the model to reason holistically over the entire compliance posture in a single pass, resulting in dramatically faster and more coherent compliance reports without the latency of multi-step tool calling.
+### AI Engine (Gemini & ADK)
+RegChain utilizes the **Google Agent Development Kit (ADK)** combined with an **Elastic Model Context Protocol (MCP)** server to orchestrate a powerful multi-step reasoning agent.
+* **Elastic MCP Integration:** The backend seamlessly translates Elastic search and ES|QL capabilities into MCP tools.
+* **Agent Orchestration:** The `@google/adk` library powers a multi-step loop where Gemini 2.5 Flash acts as the brain. It can autonomously search the graph, evaluate results, and recursively query the knowledge base to gather the complete context.
+* **Bounded Subgraph Retrieval:** The AI agent uses precise ES|QL tool calls to retrieve only the relevant subgraph, preventing hallucination while building a robust compliance chain.
 
 ---
 

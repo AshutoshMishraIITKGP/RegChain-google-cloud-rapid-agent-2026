@@ -1,7 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import { getElasticClient } from './elastic.js';
 import path from 'path';
-import { ENTITY_INDEX, RELATIONSHIP_INDEX } from './constants.js';
+import { ENTITY_INDEX, RELATIONSHIP_INDEX, NODE_TYPES, EDGE_TYPES } from './constants.js';
 
 let aiClient = null;
 function getGenAI() {
@@ -32,6 +32,9 @@ CRITICAL INSTRUCTIONS:
 4. If the graph search returns NO relevant nodes but the user is clearly asking for a compliance task, return industry-standard starter recommendations immediately.
 5. If the user asks to delete or remove nodes, use the 'proposed_deletions' field to suggest deleting specific EXACT node or edge IDs from the bounded subgraph.
 6. NEVER apply changes automatically — only suggest them using the JSON block.
+7. WARNING: When proposing new nodes or edges, you MUST ONLY use the following exact Node Types and Edge Types. Do NOT invent new categories!
+   - ALLOWED NODE TYPES: ${NODE_TYPES.join(', ')}
+   - ALLOWED EDGE TYPES: ${EDGE_TYPES.join(', ')}
 
 JSON OUTPUT REQUIREMENT (ONLY FOR GRAPH CHANGES):
 When generating suggestions, you MUST append a valid JSON block at the very end of your response:
@@ -184,9 +187,11 @@ Output only the string:`;
     const maxRetries = 3;
     let attempt = 0;
     
+    let messagePayload = fileData ? [fileData, fullPrompt] : fullPrompt;
+
     while (attempt < maxRetries) {
       try {
-        agentResponse = await chat.sendMessage({ message: fullPrompt });
+        agentResponse = await chat.sendMessage({ message: messagePayload });
         
         // Handle explicit tool calls if GenAI doesn't auto-resolve them (SDK 0.1.x behavior)
         while (agentResponse.functionCalls && agentResponse.functionCalls.length > 0) {
@@ -239,6 +244,7 @@ Output only the string:`;
   let cleanMessage = textOutput;
 
   // Extract JSON payload if present
+  parsedData = null;
   const metadataMatch = cleanMessage.match(/```json\n([\s\S]*?)\n```/);
   if (metadataMatch) {
     try {
@@ -249,11 +255,61 @@ Output only the string:`;
     }
   }
 
-  if (!parsedData) parsedData = { visited_nodes: [], visited_edges: [] };
+  // SECOND PASS VERIFICATION (as requested)
+  // Ask Gemini to pick the important nodes/edges from the EXACT list of tracked items.
+  let finalMetadata = { visited_nodes: [], visited_edges: [] };
   
-  // Merge the dynamically tracked tools context into the parsed output
-  parsedData.visited_nodes = [...new Set([...(parsedData.visited_nodes || []), ...Array.from(visitedNodes)])];
-  parsedData.visited_edges = [...new Set([...(parsedData.visited_edges || []), ...Array.from(visitedEdges)])];
+  if (mode === 'analyze') {
+    try {
+      const trackedNodes = Array.from(visitedNodes);
+      const trackedEdges = Array.from(visitedEdges);
+      
+      if (trackedNodes.length > 0 || trackedEdges.length > 0) {
+        const verifierPrompt = `
+You are a JSON extractor. 
+Based on this final analysis:
+"""
+${cleanMessage}
+"""
+
+And based on the fact that the agent visited these specific items during its search:
+Tracked Nodes: ${JSON.stringify(trackedNodes)}
+Tracked Edges: ${JSON.stringify(trackedEdges)}
+
+Return a strict JSON object identifying which of these EXACT nodes and edges were most important to the analysis. 
+You MUST ONLY select items from the "Tracked Nodes" and "Tracked Edges" lists above. DO NOT invent new IDs.
+Format: {"visited_nodes": ["id1"], "visited_edges": ["edge1"]}
+Output ONLY the JSON block.`;
+
+        const aiClient = getGenAI();
+        const verifierResponse = await aiClient.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: verifierPrompt
+        });
+        
+        let rawJsonText = verifierResponse.text;
+        const vMatch = rawJsonText.match(/```(?:json)?\n([\s\S]*?)\n```/);
+        if (vMatch) {
+           rawJsonText = vMatch[1].trim();
+        } else if (rawJsonText.startsWith('{')) {
+           rawJsonText = rawJsonText.trim();
+        } else {
+           rawJsonText = "{}";
+        }
+        
+        finalMetadata = JSON.parse(rawJsonText);
+        
+        // Safety sanitize
+        finalMetadata.visited_nodes = (finalMetadata.visited_nodes || []).filter(n => trackedNodes.includes(n));
+        finalMetadata.visited_edges = (finalMetadata.visited_edges || []).filter(e => trackedEdges.includes(e));
+      }
+    } catch (err) {
+      console.error("[AI Copilot] Second pass verification failed:", err);
+      // Fallback to everything tracked if verification fails
+      finalMetadata.visited_nodes = Array.from(visitedNodes);
+      finalMetadata.visited_edges = Array.from(visitedEdges);
+    }
+  }
 
   // Remove <thinking> blocks entirely
   cleanMessage = cleanMessage.replace(/<thinking>([\s\S]*?)<\/thinking>/g, '').trim();
@@ -261,7 +317,7 @@ Output only the string:`;
   return {
     message: cleanMessage,
     suggestion: mode === 'build' && (parsedData?.proposed_nodes || parsedData?.proposed_edges || parsedData?.proposed_deletions || parsedData?.changes) ? parsedData : null,
-    metadata: mode === 'analyze' ? parsedData : null,
+    metadata: mode === 'analyze' ? finalMetadata : null,
     timestamp: new Date().toISOString()
   };
 }

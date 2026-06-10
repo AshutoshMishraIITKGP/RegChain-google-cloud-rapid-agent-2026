@@ -261,13 +261,13 @@ export default function AICopilot() {
         formData.append('file', selectedFile);
       }
 
+      // Clear the file selection immediately before awaiting the network request
+      clearFile();
+
       const res = await fetch('/api/ai/chat', {
         method: 'POST',
         body: formData,
       });
-
-      // Clear the file selection immediately after sending
-      clearFile();
 
       const data = await res.json();
 

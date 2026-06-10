@@ -11,6 +11,8 @@ const initialState = {
   selectedEdges: [],
   focusNodeId: null,
   loading: false,
+  showVersionHistory: false,
+  showHelpModal: false,
   error: null,
   searchQuery: '',
   categoryFilter: null,
@@ -146,7 +148,7 @@ function graphReducer(state, action) {
         selectedNodes: newSelectedNodes, 
         selectedNode, 
         showInspector: !!selectedNode, 
-        selectedEdges: [] 
+        selectedEdges: multi ? state.selectedEdges : [] 
       };
     }
     case 'SELECT_NODES_BULK':
@@ -172,7 +174,7 @@ function graphReducer(state, action) {
       } else {
         newSelectedEdges = [edge];
       }
-      return { ...state, selectedEdges: newSelectedEdges, selectedNodes: [], selectedNode: null, showInspector: false };
+      return { ...state, selectedEdges: newSelectedEdges, selectedNodes: multi ? state.selectedNodes : [], selectedNode: null, showInspector: false };
     }
     case 'FOCUS_NODE':
       return { ...state, focusNodeId: action.payload };
@@ -204,6 +206,8 @@ function graphReducer(state, action) {
       return { ...state, showEditEdgeModal: false, editingEdge: null };
     case 'CLOSE_INSPECTOR':
       return { ...state, showInspector: false, selectedNode: null, selectedNodes: [] };
+    case 'TOGGLE_HELP_MODAL':
+      return { ...state, showHelpModal: action.payload !== undefined ? action.payload : !state.showHelpModal };
     case 'SHOW_DELETE_CONFIRM':
       return { ...state, showDeleteConfirm: true, deleteItems: action.payload };
     case 'HIDE_DELETE_CONFIRM':
@@ -426,7 +430,6 @@ export function GraphProvider({ children }) {
 
         performGraphAction(actionConfig);
         addToast('Suggestion approved! Graph updated.', 'success');
-        setTimeout(() => loadGraph(), 2000);
         return true;
       } else {
         dispatch({ type: 'REMOVE_SUGGESTION', payload: suggestion.id });

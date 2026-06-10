@@ -13,6 +13,7 @@ import EditEdgeModal from '@/components/Forms/EditEdgeForm';
 import VersionHistoryModal from '@/components/Forms/VersionHistoryModal';
 import SaveGraphModal from '@/components/Forms/SaveGraphModal';
 import ThemeToggle from '@/components/Common/ThemeToggle';
+import HelpModal from '@/components/Modals/HelpModal';
 
 function AppContent() {
   const { state, dispatch, loadGraph } = useGraph();
@@ -43,14 +44,16 @@ function AppContent() {
         <AICopilot />
       </div>
 
-      {/* Theme toggle floating */}
+      {/* Action Bar */}
       <div style={{
-        position: 'fixed',
-        bottom: 16,
-        left: 16,
-        zIndex: 50,
+        position: 'absolute',
+        top: '20px',
+        right: '320px', // next to inspector
+        zIndex: 10,
+        display: 'flex',
+        gap: '12px',
+        pointerEvents: 'auto'
       }}>
-        <ThemeToggle />
       </div>
 
       {/* Modals */}
@@ -61,6 +64,7 @@ function AppContent() {
       <VersionHistoryModal />
       <SaveGraphModal />
       <DeleteConfirmModal />
+      <HelpModal />
 
       {/* Toast Notifications */}
       <div className="toast-container">

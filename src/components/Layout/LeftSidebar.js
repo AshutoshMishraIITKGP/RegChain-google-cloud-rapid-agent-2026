@@ -4,7 +4,8 @@ import { useGraph } from '@/context/GraphContext';
 import {
   LayoutDashboard, Network, PlusCircle, Link2, Lightbulb, FileText,
   Cog, Shield, AlertTriangle, CheckSquare, FileCheck, ChevronLeft,
-  ChevronRight, Users, Building2, Monitor, Target, History as HistoryIcon
+  ChevronRight, Users, Building2, Monitor, Target, History as HistoryIcon,
+  HelpCircle
 } from 'lucide-react';
 
 const NAV_SECTIONS = [
@@ -120,13 +121,13 @@ export default function LeftSidebar() {
       <div className="sidebar-footer">
         <button
           className="sidebar-item"
-          onClick={() => setActiveItem('settings')}
-          title={collapsed ? 'Settings' : undefined}
+          onClick={() => dispatch({ type: 'TOGGLE_HELP_MODAL', payload: true })}
+          title={collapsed ? 'Help Guide' : undefined}
         >
           <span className="sidebar-item-icon">
-            <Cog size={18} />
+            <HelpCircle size={18} />
           </span>
-          {!collapsed && <span className="sidebar-item-label">Settings</span>}
+          {!collapsed && <span className="sidebar-item-label">Help Guide</span>}
         </button>
       </div>
     </aside>

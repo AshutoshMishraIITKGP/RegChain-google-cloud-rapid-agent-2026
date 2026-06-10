@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import { useGraph } from '@/context/GraphContext';
 import { NODE_COLORS, NODE_ICONS } from '@/lib/constants';
 import {
-  ZoomIn, ZoomOut, Maximize2, Minimize2, PlusCircle, Link2, Search, RotateCcw, Type, X, Save
+  ZoomIn, ZoomOut, Maximize2, Minimize2, PlusCircle, Link2, Search, LayoutGrid, Type, X, Save
 } from 'lucide-react';
 import NodeInspector from '../Inspector/NodeInspector';
 import ResetConfigModal from '../Forms/ResetConfigModal';
@@ -223,8 +223,29 @@ export default function GraphCanvas() {
     state.pendingSuggestions?.forEach(suggestion => {
       if (suggestion.proposed_edges) {
         suggestion.proposed_edges.forEach((pe, i) => {
-          const sId = pe.source || nodes.find(n => n.name === pe.source_name)?.id;
-          const tId = pe.target || nodes.find(n => n.name === pe.target_name)?.id;
+          let sId = pe.source || nodes.find(n => n.name.toLowerCase() === pe.source_name?.toLowerCase())?.id;
+          let tId = pe.target || nodes.find(n => n.name.toLowerCase() === pe.target_name?.toLowerCase())?.id;
+
+          // If the AI proposed an edge to a node that doesn't exist at all, auto-create a ghost node for it
+          // so the user can visually see the AI's intended connection
+          if (!sId && pe.source_name) {
+            sId = `ghost_auto_${pe.source_name.toLowerCase().replace(/\s+/g, '_')}`;
+            nodes.push({
+              id: sId, name: pe.source_name, type: 'Unknown', status: 'proposed', description: 'Auto-generated from edge proposal',
+              color: '#8a2be2', val: 4, isGhost: true, suggestionId: suggestion.id, itemIndex: i,
+              _entity: { id: sId, name: pe.source_name, type: 'Unknown', isGhost: true, suggestionId: suggestion.id }
+            });
+            nodeIdSet.add(sId);
+          }
+          if (!tId && pe.target_name) {
+            tId = `ghost_auto_${pe.target_name.toLowerCase().replace(/\s+/g, '_')}`;
+            nodes.push({
+              id: tId, name: pe.target_name, type: 'Unknown', status: 'proposed', description: 'Auto-generated from edge proposal',
+              color: '#8a2be2', val: 4, isGhost: true, suggestionId: suggestion.id, itemIndex: i,
+              _entity: { id: tId, name: pe.target_name, type: 'Unknown', isGhost: true, suggestionId: suggestion.id }
+            });
+            nodeIdSet.add(tId);
+          }
 
           if (sId && tId && nodeIdSet.has(sId) && nodeIdSet.has(tId)) {
             links.push({
@@ -245,20 +266,25 @@ export default function GraphCanvas() {
 
     // Calculate intelligent coordinates for ghost nodes to keep them close to their neighbors and avoid overlaps
     nodes.filter(n => n.isGhost && n.fx === undefined && n.fy === undefined).forEach(ghostNode => {
-      const connectedEdges = links.filter(l => l.source === ghostNode.id || l.target === ghostNode.id);
+      const connectedEdges = links.filter(l => {
+        const sId = typeof l.source === 'object' ? l.source.id : l.source;
+        const tId = typeof l.target === 'object' ? l.target.id : l.target;
+        return sId === ghostNode.id || tId === ghostNode.id;
+      });
       let cx = 0, cy = 0;
       let hasNeighbors = false;
 
       if (connectedEdges.length > 0) {
         let sumX = 0, sumY = 0, count = 0;
         connectedEdges.forEach(e => {
-          const neighborId = e.source === ghostNode.id ? e.target : e.source;
+          const sId = typeof e.source === 'object' ? e.source.id : e.source;
+          const tId = typeof e.target === 'object' ? e.target.id : e.target;
+          const neighborId = sId === ghostNode.id ? tId : sId;
           const neighbor = nodes.find(n => n.id === neighborId);
-          if (neighbor) {
-            const nx = neighbor.fx !== undefined ? neighbor.fx : (neighbor.x || 0);
-            const ny = neighbor.fy !== undefined ? neighbor.fy : (neighbor.y || 0);
-            sumX += nx;
-            sumY += ny;
+          // Only pull towards neighbors that have ALREADY been placed
+          if (neighbor && neighbor.fx !== undefined && neighbor.fy !== undefined) {
+            sumX += neighbor.fx;
+            sumY += neighbor.fy;
             count++;
           }
         });
@@ -270,19 +296,49 @@ export default function GraphCanvas() {
       }
 
       if (!hasNeighbors) {
-        // Place completely disconnected nodes outside the current graph
-        let maxX = 0, maxY = 0;
+        // Find mean of existing graph
+        let sumX = 0, sumY = 0, existingCount = 0;
         nodes.forEach(n => {
-          if (!n.isGhost) {
-            if (n.x !== undefined && Math.abs(n.x) > maxX) maxX = Math.abs(n.x);
-            if (n.y !== undefined && Math.abs(n.y) > maxY) maxY = Math.abs(n.y);
+          if (!n.isGhost && n.x !== undefined && n.y !== undefined) {
+             sumX += n.x;
+             sumY += n.y;
+             existingCount++;
           }
         });
-        cx = maxX + 100 + (Math.random() * 50);
-        cy = maxY + 100 + (Math.random() * 50);
+        
+        let cxBase = existingCount > 0 ? sumX / existingCount : 0;
+        let cyBase = existingCount > 0 ? sumY / existingCount : 0;
+
+        let angle = Math.random() * Math.PI * 2;
+        let radius = 250; // Initial distance parameter
+        let testX = cxBase + Math.cos(angle) * radius;
+        let testY = cyBase + Math.sin(angle) * radius;
+        
+        let overlap = true;
+        let outerAttempts = 0;
+        while (overlap && outerAttempts < 30) {
+            overlap = false;
+            for (let i = 0; i < nodes.length; i++) {
+                const other = nodes[i];
+                if (!other.isGhost && other.x !== undefined) {
+                    if (Math.hypot(testX - other.x, testY - other.y) < 200) { // Overlap threshold
+                        overlap = true;
+                        break;
+                    }
+                }
+            }
+            if (overlap) {
+                radius += 100; // Increase distance parameter
+                testX = cxBase + Math.cos(angle) * radius;
+                testY = cyBase + Math.sin(angle) * radius;
+                outerAttempts++;
+            }
+        }
+        cx = testX;
+        cy = testY;
       }
 
-      // Spiral Collision Avoidance
+      // Spiral Collision Avoidance around the determined center (cx, cy)
       let placed = false;
       let radius = hasNeighbors ? 45 : 20; // Start distance
       let angle = Math.random() * Math.PI * 2;
@@ -329,8 +385,18 @@ export default function GraphCanvas() {
       ghostNode.fy = finalY;
     });
 
-    return { nodes: [...nodes], links: [...links], _sessionTrigger: state.activeAnalysisSession?._sessionId };
-  }, [state.entities, state.relationships, state.searchQuery, state.categoryFilter, state.pendingSuggestions, state.activeAnalysisSession]);
+    return { nodes: [...nodes], links: [...links] };
+  }, [state.entities, state.relationships, state.searchQuery, state.categoryFilter, state.pendingSuggestions]);
+
+  // Configure physics engine forces
+  useEffect(() => {
+    if (graphRef.current) {
+      // Limit edge length to keep nodes tightly coupled but visible
+      graphRef.current.d3Force('link').distance(45);
+      // Increase repulsion to prevent overlaps
+      graphRef.current.d3Force('charge').strength(-400);
+    }
+  }, [graphData]); // Re-apply if engine resets
 
   // Highlight selected node's neighborhood
   useEffect(() => {
@@ -501,7 +567,8 @@ export default function GraphCanvas() {
     // while keeping the exact same zoom and pan coordinates
     if (state.searchQuery) dispatch({ type: 'SET_SEARCH', payload: '' });
     if (state.categoryFilter) dispatch({ type: 'SET_CATEGORY_FILTER', payload: null });
-  }, [dispatch, state.searchQuery, state.categoryFilter]);
+    if (state.activeAnalysisSession) dispatch({ type: 'SET_ANALYSIS_SESSION', payload: null });
+  }, [dispatch, state.searchQuery, state.categoryFilter, state.activeAnalysisSession]);
 
   const lastDragPos = useRef(null);
 
@@ -574,7 +641,7 @@ export default function GraphCanvas() {
   }, []);
 
   const handlePointerDown = useCallback((e) => {
-    if (isCtrlPressed.current && e.button === 0) {
+    if (isShiftPressed.current && e.button === 0) {
       e.stopPropagation();
       e.preventDefault();
       const rect = containerRef.current.getBoundingClientRect();
@@ -777,7 +844,7 @@ export default function GraphCanvas() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [state.selectedEdges, state.selectedNode, dispatch, addToast, undo, redo]);
+  }, [state.selectedEdges, state.selectedNode, state.selectedNodes, dispatch, addToast, undo, redo]);
 
   // Custom node painting
   const paintNode = useCallback((node, ctx, globalScale) => {
@@ -1038,8 +1105,8 @@ export default function GraphCanvas() {
           >
             {isGraphFullScreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
           </button>
-          <button className="toolbar-btn" onClick={handleResetView} title="Reset">
-            <RotateCcw size={14} />
+          <button className="toolbar-btn" onClick={handleResetView} title="Reset View">
+            <LayoutGrid size={14} />
           </button>
           <button 
             className={`toolbar-btn ${showAnnotations ? 'active' : ''}`} 

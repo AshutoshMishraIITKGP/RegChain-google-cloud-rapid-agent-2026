@@ -61,37 +61,6 @@
   --header-height: 0px;
 }
 
-[data-theme="light"] {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f8f8f8;
-  --bg-tertiary: #f0f0f0;
-  --bg-elevated: #ffffff;
-  --bg-hover: #f0f0f0;
-  --bg-active: #e8e8e8;
-
-  --border-primary: #e0e0e0;
-  --border-secondary: #d0d0d0;
-  --border-accent: #c0c0c0;
-
-  --text-primary: #111111;
-  --text-secondary: #555555;
-  --text-tertiary: #999999;
-  --text-inverse: #ffffff;
-
-  --accent: #C9A020;
-  --accent-hover: #B89018;
-  --accent-dim: rgba(201, 160, 32, 0.1);
-  --accent-border: rgba(201, 160, 32, 0.25);
-
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
-  --shadow-glow: 0 0 20px rgba(201, 160, 32, 0.08);
-
-  --graph-bg: #fafafa;
-  --graph-grid: rgba(0, 0, 0, 0.04);
-}
-
 /* ============================================
    Reset & Base
    ============================================ */
@@ -1434,49 +1403,6 @@ a:hover {
 .badge.system { background: rgba(52, 152, 219, 0.15); color: #3498DB; }
 .badge.gap { background: rgba(233, 30, 99, 0.15); color: #E91E63; }
 .badge.organization { background: rgba(149, 165, 166, 0.15); color: #95A5A6; }
-
-/* ============================================
-   Theme Toggle
-   ============================================ */
-.theme-toggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-primary);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.theme-toggle:hover {
-  border-color: var(--border-secondary);
-}
-
-.theme-toggle-track {
-  width: 36px;
-  height: 20px;
-  border-radius: 10px;
-  background: var(--bg-active);
-  position: relative;
-  transition: background var(--transition-base);
-}
-
-.theme-toggle-thumb {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--accent);
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  transition: transform var(--transition-base);
-}
-
-[data-theme="light"] .theme-toggle-thumb {
-  transform: translateX(16px);
-}
 
 /* ============================================
    Loading & Spinner

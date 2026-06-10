@@ -80,7 +80,7 @@ export const searchGraphTool = new FunctionTool({
   execute: async ({ query, entity_type }) => {
     await throttleToolCall();
     const q = entity_type ? `${query} type:"${entity_type}"` : query;
-    const res = await executeElasticMCPTool('platform_core_search', { index: 'entities', query: q });
+    const res = await executeElasticMCPTool('platform_core_search', { index: 'regchain-entities', query: q });
     return trackResults(res);
   }
 });

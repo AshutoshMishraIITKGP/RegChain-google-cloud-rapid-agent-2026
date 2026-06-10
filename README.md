@@ -54,27 +54,31 @@ RegChain employs a modern architecture decoupling the user interface, the graph 
 
 ```mermaid
 graph TD
-    A["User"] -->|"Interacts"| B("Next.js UI & React Force Graph")
+    A["User"] -->|"Interacts & Drops PDFs"| B("Next.js UI & React Force Graph")
     B -->|"API Calls"| C{"Next.js Backend"}
-    C -->|"Graph Retrieval"| D[("Elasticsearch")]
-    D -->|"Bounded Subgraph"| E["@google/genai SDK"]
-    E -->|"Single Context Dump"| F["Gemini 2.5 Pro"]
-    F -->|"Compliance Analysis"| B
+    C -->|"Multi-Step Tools & File Data"| E["@google/genai SDK (ADK Agent)"]
+    E <-->|"MCP Searches & ES|QL Traversal"| F{"Elastic Agent Builder MCP"}
+    F <-->|"Direct Graph Access"| D[("Elasticsearch")]
+    E -->|"Strict Output Verification"| E2["Gemini 2.5 Flash Verifier"]
+    E2 -->|"Hallucination-Free JSON"| C
+    C -->|"Updates Bounding Box & Edges"| B
 ```
 
 ### Frontend
 * **Next.js & React:** Provides a snappy, SSR-optimized web interface.
 * **React Force Graph (2D/3D):** Renders the complex compliance graph with customized D3 physics to ensure disparate subgraphs remain highly visible and disjoint.
+* **Multimodal UI:** Seamlessly drag-and-drop PDFs, images, or audit reports directly into the AI Copilot.
 
 ### Backend & Knowledge Layer
 * **Next.js API Routes:** Acts as the secure middleware connecting the frontend to the AI and Elastic layers.
-* **Elasticsearch:** Acts as the highly scalable backend storing all nodes (entities) and edges (relationships).
+* **Elasticsearch:** Acts as the highly scalable backend storing all nodes (entities) and edges (relationships) utilizing custom `regchain-entities` and `regchain-relationships` indices.
 
-### AI Engine (Gemini & ADK)
-RegChain utilizes the **Google Agent Development Kit (ADK)** combined with an **Elastic Model Context Protocol (MCP)** server to orchestrate a powerful multi-step reasoning agent.
-* **Elastic MCP Integration:** The backend seamlessly translates Elastic search and ES|QL capabilities into MCP tools.
-* **Agent Orchestration:** The `@google/adk` library powers a multi-step loop where Gemini 2.5 Flash acts as the brain. It can autonomously search the graph, evaluate results, and recursively query the knowledge base to gather the complete context.
-* **Bounded Subgraph Retrieval:** The AI agent uses precise ES|QL tool calls to retrieve only the relevant subgraph, preventing hallucination while building a robust compliance chain.
+### AI Engine (Gemini & ADK + MCP)
+RegChain utilizes the **Google Agent Development Kit (ADK)** combined with an **Elastic Model Context Protocol (MCP)** server to orchestrate a powerful, completely autonomous multi-step reasoning agent.
+* **Elastic MCP Integration:** Instead of writing low-level Elasticsearch queries, our backend translates ADK tool calls into `platform_core_search` and `platform_core_execute_esql` MCP requests, ferrying them securely over Server-Sent Events (SSE) directly to the Elastic Cloud.
+* **Agent Orchestration:** The `@google/genai` library powers a multi-step loop where **Gemini 2.5 Pro** acts as the brain. It autonomously searches the graph, evaluates results, and recursively queries the knowledge base to gather complete context.
+* **Double-Pass Guardrails:** Every node and edge retrieved by the MCP is tracked globally. A secondary **Gemini 2.5 Flash** agent evaluates the final output strictly against this tracked MCP context, guaranteeing 0% hallucination for the UI highlights.
+* **Native Multimodality:** PDF Audit Reports and infrastructure images dropped into the Copilot are natively processed by Gemini 2.5 Pro alongside the graph context to perform instant compliance extraction.
 
 ---
 

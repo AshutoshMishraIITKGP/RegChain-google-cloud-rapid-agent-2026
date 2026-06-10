@@ -1,66 +1,89 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client';
+import { useEffect } from 'react';
+import { ThemeProvider } from '@/context/ThemeContext';
+import { GraphProvider, useGraph } from '@/context/GraphContext';
+import LeftSidebar from '@/components/Layout/LeftSidebar';
+import GraphCanvas from '@/components/Graph/GraphCanvas';
+import AICopilot from '@/components/AI/AICopilot';
+import DeleteConfirmModal from '@/components/Forms/DeleteConfirmModal';
+import AddNodeModal from '@/components/Forms/AddNodeForm';
+import AddEdgeModal from '@/components/Forms/AddEdgeForm';
+import EditNodeModal from '@/components/Forms/EditNodeForm';
+import EditEdgeModal from '@/components/Forms/EditEdgeForm';
+import VersionHistoryModal from '@/components/Forms/VersionHistoryModal';
+import SaveGraphModal from '@/components/Forms/SaveGraphModal';
+import ThemeToggle from '@/components/Common/ThemeToggle';
+
+function AppContent() {
+  const { state, dispatch, loadGraph } = useGraph();
+
+  useEffect(() => {
+    loadGraph();
+  }, [loadGraph]);
+
+  // Globally prevent context menu to avoid interference with right-click interactions
+  useEffect(() => {
+    const handleContextMenu = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        return;
+      }
+      if (!e.shiftKey) {
+        e.preventDefault();
+      }
+    };
+    document.addEventListener('contextmenu', handleContextMenu);
+    return () => document.removeEventListener('contextmenu', handleContextMenu);
+  }, []);
+
+  return (
+    <>
+      <div className="app-layout">
+        <LeftSidebar />
+        <GraphCanvas />
+        <AICopilot />
+      </div>
+
+      {/* Theme toggle floating */}
+      <div style={{
+        position: 'fixed',
+        bottom: 16,
+        left: 16,
+        zIndex: 50,
+      }}>
+        <ThemeToggle />
+      </div>
+
+      {/* Modals */}
+      {state.showAddNodeModal && <AddNodeModal />}
+      {state.showAddEdgeModal && <AddEdgeModal />}
+      {state.showEditNodeModal && <EditNodeModal />}
+      {state.showEditEdgeModal && <EditEdgeModal />}
+      <VersionHistoryModal />
+      <SaveGraphModal />
+      <DeleteConfirmModal />
+
+      {/* Toast Notifications */}
+      <div className="toast-container">
+        {state.toasts.map((toast) => (
+          <div key={toast.id} className={`toast ${toast.type}`}>
+            {toast.type === 'success' && '✅'}
+            {toast.type === 'error' && '❌'}
+            {toast.type === 'warning' && '⚠️'}
+            {toast.type === 'info' && 'ℹ️'}
+            <span>{toast.message}</span>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
 
 export default function Home() {
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.js file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <ThemeProvider>
+      <GraphProvider>
+        <AppContent />
+      </GraphProvider>
+    </ThemeProvider>
   );
 }

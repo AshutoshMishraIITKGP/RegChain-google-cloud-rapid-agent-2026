@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Secret files
+gcloud-rapid-agent-*.json
+*-key.json
+*.pem

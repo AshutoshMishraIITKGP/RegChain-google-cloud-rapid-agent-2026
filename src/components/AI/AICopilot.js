@@ -252,7 +252,7 @@ export default function AICopilot() {
 
     let finalText = text.trim();
     if (referencedItems && (referencedItems.nodes?.length > 0 || referencedItems.edges?.length > 0)) {
-      const refStr = `\n\n[Context: The user has explicitly referenced the following items from the graph:]\nNodes:\n${(referencedItems.nodes || []).map(n => `- ${n.id} (Type: ${n.type})`).join('\n')}\nEdges:\n${(referencedItems.edges || []).map(e => `- ${e.source} -> ${e.relation} -> ${e.target}`).join('\n')}`;
+      const refStr = `\n\n[Context: The user has explicitly referenced the following items from the graph:]\nNodes:\n${(referencedItems.nodes || []).map(n => `- ID: ${n.id} (Label: "${n.label}", Type: ${n.type})`).join('\n')}\nEdges:\n${(referencedItems.edges || []).map(e => `- ${e.source} -> ${e.relation} -> ${e.target}`).join('\n')}`;
       finalText += refStr;
     }
 

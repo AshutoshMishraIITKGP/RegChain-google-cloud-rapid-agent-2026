@@ -44,3 +44,6 @@ next-env.d.ts
 gcloud-rapid-agent-*.json
 *-key.json
 *.pem
+
+# Devpost
+[Dd]evpost.md

@@ -228,8 +228,8 @@ export default function GraphCanvas() {
     state.pendingSuggestions?.forEach(suggestion => {
       if (suggestion.proposed_edges) {
         suggestion.proposed_edges.forEach((pe, i) => {
-          let sId = pe.source || nodes.find(n => n.name.toLowerCase() === pe.source_name?.toLowerCase())?.id;
-          let tId = pe.target || nodes.find(n => n.name.toLowerCase() === pe.target_name?.toLowerCase())?.id;
+          let sId = pe.source || nodes.find(n => n.id === pe.source_name || n.name.toLowerCase() === pe.source_name?.toLowerCase())?.id;
+          let tId = pe.target || nodes.find(n => n.id === pe.target_name || n.name.toLowerCase() === pe.target_name?.toLowerCase())?.id;
 
           // If the AI proposed an edge to a node that doesn't exist at all, auto-create a ghost node for it
           // so the user can visually see the AI's intended connection
@@ -392,6 +392,19 @@ export default function GraphCanvas() {
 
     return { nodes: [...nodes], links: [...links] };
   }, [state.entities, state.relationships, state.searchQuery, state.categoryFilter, state.pendingSuggestions]);
+
+  // Auto-zoom to suggested nodes when suggestions are generated
+  useEffect(() => {
+    if (state.pendingSuggestions && state.pendingSuggestions.length > 0 && graphRef.current) {
+      // Small timeout to allow physics to settle ghost nodes before zooming
+      setTimeout(() => {
+        if (graphRef.current) {
+          // Zoom to fit any ghost nodes or nodes marked as proposed
+          graphRef.current.zoomToFit(800, 100, (node) => node.isGhost || node.status === 'proposed');
+        }
+      }, 300);
+    }
+  }, [state.pendingSuggestions]);
 
   // Configure physics engine forces
   useEffect(() => {
@@ -840,7 +853,7 @@ export default function GraphCanvas() {
         if (nodesToCopy.length > 0 || edgesToCopy.length > 0) {
           e.preventDefault();
           const refPayload = {
-            nodes: nodesToCopy.map(n => ({ id: n.id, type: n.type, label: n.label })),
+            nodes: nodesToCopy.map(n => ({ id: n.id, type: n.type, label: n.name || n.label })),
             edges: edgesToCopy.map(edge => ({
               source: edge.source.id || edge.source,
               target: edge.target.id || edge.target,

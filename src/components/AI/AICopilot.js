@@ -42,7 +42,7 @@ export default function AICopilot() {
   
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState([]);
   const [referencedItems, setReferencedItems] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -202,31 +202,40 @@ export default function AICopilot() {
     setIsDragging(false);
     
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const file = e.dataTransfer.files[0];
-      if (file.size > 4 * 1024 * 1024) {
-        addToast('File limit reached: Size must be under 4MB', 'error');
-        if (fileInputRef.current) fileInputRef.current.value = '';
-        return;
-      }
-      setSelectedFile(file);
+      const newFiles = Array.from(e.dataTransfer.files).filter(file => {
+        if (file.size > 20 * 1024 * 1024) {
+          addToast(`File ${file.name} is too large (max 20MB)`, 'error');
+          return false;
+        }
+        return true;
+      });
+      setSelectedFiles(prev => [...prev, ...newFiles]);
       e.dataTransfer.clearData();
     }
   };
 
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 4 * 1024 * 1024) {
-        addToast('File limit reached: Size must be under 4MB', 'error');
-        if (fileInputRef.current) fileInputRef.current.value = '';
-        return;
-      }
-      setSelectedFile(file);
+    if (e.target.files && e.target.files.length > 0) {
+      const newFiles = Array.from(e.target.files).filter(file => {
+        if (file.size > 20 * 1024 * 1024) {
+          addToast(`File ${file.name} is too large (max 20MB)`, 'error');
+          return false;
+        }
+        return true;
+      });
+      setSelectedFiles(prev => [...prev, ...newFiles]);
+    }
+  };
+
+  const removeFile = (indexToRemove) => {
+    setSelectedFiles(prev => prev.filter((_, idx) => idx !== indexToRemove));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
   const clearFile = () => {
-    setSelectedFile(null);
+    setSelectedFiles([]);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -279,8 +288,8 @@ export default function AICopilot() {
       formData.append('message', finalText);
       formData.append('history', JSON.stringify(messages));
       formData.append('mode', mode);
-      if (selectedFile) {
-        formData.append('file', selectedFile);
+      if (selectedFiles && selectedFiles.length > 0) {
+        selectedFiles.forEach(f => formData.append('file', f));
       }
 
       // Clear the file and references selection immediately before awaiting the network request
@@ -685,36 +694,40 @@ export default function AICopilot() {
           </div>
 
           <div className="chat-input-container">
-            {selectedFile && (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '6px 10px',
-                margin: '0 16px 8px 16px',
-                backgroundColor: 'rgba(0, 242, 254, 0.1)',
-                border: '1px solid #00f2fe',
-                borderRadius: '6px',
-                fontSize: '12px',
-                color: '#00f2fe'
-              }}>
-                <Paperclip size={14} style={{ marginRight: '6px' }} />
-                <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
-                </span>
-                <button
-                  type="button"
-                  onClick={clearFile}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: '#00f2fe',
-                    cursor: 'pointer',
-                    padding: '2px',
-                    marginLeft: '8px'
-                  }}
-                >
-                  <X size={14} />
-                </button>
+            {selectedFiles && selectedFiles.length > 0 && (
+              <div style={{ margin: '0 16px 8px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {selectedFiles.map((file, idx) => (
+                  <div key={idx} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '6px 10px',
+                    backgroundColor: 'rgba(0, 242, 254, 0.1)',
+                    border: '1px solid #00f2fe',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    color: '#00f2fe'
+                  }}>
+                    <Paperclip size={14} style={{ marginRight: '6px', flexShrink: 0 }} />
+                    <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(idx)}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#00f2fe',
+                        cursor: 'pointer',
+                        padding: '2px',
+                        marginLeft: '8px',
+                        flexShrink: 0
+                      }}
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
             {referencedItems && (
@@ -746,6 +759,7 @@ export default function AICopilot() {
             <form className="chat-input-wrapper" onSubmit={handleSubmit}>
               <input 
                 type="file" 
+                multiple
                 ref={fileInputRef}
                 onChange={handleFileChange}
                 style={{ display: 'none' }}
@@ -788,7 +802,7 @@ export default function AICopilot() {
               <button
                 type="submit"
                 className="chat-send-btn"
-                disabled={(!input.trim() && !selectedFile) || loading}
+                disabled={(!input.trim() && selectedFiles.length === 0) || loading}
               >
                 <Send size={16} />
               </button>

@@ -199,7 +199,7 @@ Output only the string:`;
     const maxRetries = 3;
     let attempt = 0;
     
-    let messagePayload = fileData ? [fileData, fullPrompt] : fullPrompt;
+    let messagePayload = fileData && Array.isArray(fileData) ? [...fileData, fullPrompt] : fullPrompt;
 
     while (attempt < maxRetries) {
       try {

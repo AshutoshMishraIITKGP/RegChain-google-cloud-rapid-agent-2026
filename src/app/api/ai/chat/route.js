@@ -4,6 +4,8 @@ import { ensureIndices } from '@/lib/elastic';
 import { processAIChat } from '@/lib/ai-agent';
 import { createSuggestion } from '@/lib/graph-logic';
 
+export const maxDuration = 60;
+
 export async function POST(request) {
   try {
     await ensureIndices();
@@ -11,25 +13,30 @@ export async function POST(request) {
     const message = formData.get('message');
     const history = JSON.parse(formData.get('history') || '[]');
     const mode = formData.get('mode') || 'build';
-    const file = formData.get('file');
+    const files = formData.getAll('file'); // Get all files
 
-    if (!message && !file) {
+    if (!message && (!files || files.length === 0)) {
       return NextResponse.json({ error: 'message or file is required' }, { status: 400 });
     }
 
-    let fileData = null;
-    if (file) {
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      fileData = {
-        inlineData: {
-          data: buffer.toString('base64'),
-          mimeType: file.type
+    let fileData = [];
+    if (files && files.length > 0) {
+      for (const file of files) {
+        if (file && file.size > 0) {
+          const bytes = await file.arrayBuffer();
+          const buffer = Buffer.from(bytes);
+          fileData.push({
+            inlineData: {
+              data: buffer.toString('base64'),
+              mimeType: file.type
+            }
+          });
         }
-      };
+      }
     }
 
-    const result = await processAIChat(message, history, mode, fileData);
+    // Process chat with array of fileData objects
+    const result = await processAIChat(message, history, mode, fileData.length > 0 ? fileData : null);
     console.log('AI Response:', JSON.stringify({ hasMessage: !!result.message, hasSuggestion: !!result.suggestion, metadata: result.metadata }));
 
     // If the AI returned a structured suggestion, store it

@@ -147,7 +147,7 @@ RegChain is fundamentally built around the **`@google/genai` SDK** utilizing Ver
 
 ---
 
-## Knowledge Graph Structure
+## Knowledge Graph Structure (example nodes and edges)
 
 The RegChain graph is highly structured, mapping the real-world complexities of enterprise compliance.
 

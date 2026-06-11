@@ -245,13 +245,18 @@ regchain/
 ├── src/
 │   ├── app/                 # Next.js App Router (API & Pages)
 │   ├── components/
-│   │   ├── Graph/           # React Force Graph implementations
 │   │   ├── AI/              # Copilot Chat UI & Overlay
-│   │   └── Inspector/       # Node/Edge property panels
+│   │   ├── Graph/           # React Force Graph implementations
+│   │   ├── Inspector/       # Node/Edge property panels
+│   │   ├── Modals/          # Dialog modals (Help, Settings)
+│   │   └── Layout/          # Structural UI components
+│   ├── context/             # React Context providers for global state
 │   ├── lib/
-│   │   ├── ai-agent.js      # Google ADK configuration
-│   │   ├── elastic.js       # Elastic client setup
-│   │   └── mcp-tools.js     # Elastic MCP tool definitions
+│   │   ├── ai-agent.js      # Google ADK agent orchestration & prompts
+│   │   ├── mcp-client.js    # Elastic Agent Builder MCP connection
+│   │   ├── agent-tools.js   # ADK tool definitions mapping to MCP
+│   │   ├── elastic.js       # Elastic search client utilities
+│   │   └── graph-logic.js   # Graph data transformation & suggestion logic
 ├── public/                  # Static assets
 ├── docker-compose.yml       # Local Elastic setup
 └── package.json

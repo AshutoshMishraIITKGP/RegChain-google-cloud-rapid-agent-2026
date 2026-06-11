@@ -151,22 +151,13 @@ RegChain is fundamentally built around the **`@google/genai` SDK** utilizing Ver
 
 The RegChain graph is highly structured, mapping the real-world complexities of enterprise compliance.
 
-### Entity Types (Nodes)
-* **Regulations:** e.g., GDPR, SOC2, HIPAA
-* **Policies:** e.g., Data Retention Policy, Access Control Framework
-* **Controls:** e.g., MFA Enforcement, AES-256 Encryption
-* **Systems:** e.g., Core Banking System, AWS S3 Bucket
-* **Risks:** e.g., Credential Theft, Data Exfiltration
-* **Evidence:** e.g., Q3 VAPT Audit Report
-* **Tasks:** e.g., Implement SSO
-* **Teams:** e.g., SecOps, Compliance
+### Entity Types
+The graph supports the following explicit node categories:
+* \`Control\`, \`Team\`, \`System\`, \`Evidence\`, \`Gap\`, \`Policy\`, \`Regulation\`, \`Obligation\`, \`Risk\`, \`Task\`, \`Finding\`, \`Process\`, \`Recommendation\`, \`Organization\`
 
-### Relationships (Edges)
-* `[Control]` **mitigates** `[Risk]`
-* `[Policy]` **mandates** `[Control]`
-* `[System]` **governs** `[Data]`
-* `[Evidence]` **applies_to** `[Control]`
-* `[Task]` **remediates** `[Compliance Gap]`
+### Relationships
+Entities can be interconnected via the following directed edge types:
+* \`requires_fix\`, \`supported_by\`, \`mandates\`, \`governs\`, \`uses\`, \`owned_by\`, \`mitigates\`, \`supports\`, \`produces\`, \`implemented_by\`, \`addresses\`, \`IMPACTS\`, \`HAS_RISK\`, \`creates_risk\`, \`applies_to\`, \`affects\`, \`evidences\`, \`monitors\`, \`HAS_FINDING\`, \`complies_with\`, \`validates\`, \`depends_on\`, \`references\`, \`CAUSES\`, \`implements\`, \`audits\`, \`LEADS_TO\`
 
 **Example Subgraph:**
 *(GDPR)* -> mandates -> *(Data Encryption Policy)* -> mandates -> *(AES-256 Control)* -> mitigates -> *(Data Breach Risk)* -> affects -> *(Core Banking System)*.

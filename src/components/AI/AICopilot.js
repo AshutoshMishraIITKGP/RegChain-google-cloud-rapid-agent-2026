@@ -43,6 +43,7 @@ export default function AICopilot() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [referencedItems, setReferencedItems] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -231,13 +232,34 @@ export default function AICopilot() {
     }
   };
 
+  const handlePaste = (e) => {
+    const text = e.clipboardData.getData('text');
+    if (text && text.startsWith('[RegChain_Reference:')) {
+      e.preventDefault();
+      try {
+        const jsonStr = text.replace('[RegChain_Reference: ', '').replace(/]$/, '');
+        const data = JSON.parse(jsonStr);
+        setReferencedItems(data);
+        addToast(`Attached ${data.nodes?.length || 0} nodes and ${data.edges?.length || 0} edges as reference`, 'success');
+      } catch (err) {
+        addToast('Failed to parse graph reference', 'error');
+      }
+    }
+  };
+
   const sendMessage = async (text) => {
-    if (!text.trim() || loading) return;
+    if ((!text.trim() && !referencedItems) || loading) return;
+
+    let finalText = text.trim();
+    if (referencedItems && (referencedItems.nodes?.length > 0 || referencedItems.edges?.length > 0)) {
+      const refStr = `\n\n[Context: The user has explicitly referenced the following items from the graph:]\nNodes:\n${(referencedItems.nodes || []).map(n => `- ${n.id} (Type: ${n.type})`).join('\n')}\nEdges:\n${(referencedItems.edges || []).map(e => `- ${e.source} -> ${e.relation} -> ${e.target}`).join('\n')}`;
+      finalText += refStr;
+    }
 
     const userMsg = {
       id: Date.now().toString(),
       role: 'user',
-      content: text.trim(),
+      content: finalText,
       timestamp: new Date().toISOString(),
     };
 
@@ -254,15 +276,16 @@ export default function AICopilot() {
 
     try {
       const formData = new FormData();
-      formData.append('message', text.trim());
+      formData.append('message', finalText);
       formData.append('history', JSON.stringify(messages));
       formData.append('mode', mode);
       if (selectedFile) {
         formData.append('file', selectedFile);
       }
 
-      // Clear the file selection immediately before awaiting the network request
+      // Clear the file and references selection immediately before awaiting the network request
       clearFile();
+      setReferencedItems(null);
 
       const res = await fetch('/api/ai/chat', {
         method: 'POST',
@@ -694,6 +717,32 @@ export default function AICopilot() {
                 </button>
               </div>
             )}
+            {referencedItems && (
+              <div style={{
+                background: 'var(--bg-tertiary)', padding: '6px 12px', borderRadius: '6px',
+                fontSize: 12, color: 'var(--text-secondary)', display: 'flex',
+                alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px',
+                border: '1px solid var(--border-primary)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }} />
+                  <span>
+                    Referencing {referencedItems.nodes?.length || 0} nodes and {referencedItems.edges?.length || 0} edges
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setReferencedItems(null)}
+                  style={{
+                    background: 'transparent', border: 'none', color: 'var(--text-tertiary)',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center',
+                    marginLeft: '8px'
+                  }}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            )}
             <form className="chat-input-wrapper" onSubmit={handleSubmit}>
               <input 
                 type="file" 
@@ -731,6 +780,7 @@ export default function AICopilot() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
+                onPaste={handlePaste}
                 rows={1}
                 disabled={loading}
                 style={{ overflowY: 'auto' }}

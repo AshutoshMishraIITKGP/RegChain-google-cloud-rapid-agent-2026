@@ -41,15 +41,17 @@ export const NODE_COLORS = {
   Regulation:   '#E8B931',
   Obligation:   '#E07B39',
   Control:      '#4ECDC4',
-  Process:      '#5B8DEE',
+  Process:      '#3498DB',
   Policy:       '#9B59B6',
   Team:         '#2ECC71',
   Risk:         '#E74C3C',
-  Evidence:     '#1ABC9C',
-  Task:         '#F39C12',
-  System:       '#3498DB',
+  Evidence:     '#F1C40F',
+  Task:         '#E67E22',
+  System:       '#34495E',
   Gap:          '#E91E63',
   Organization: '#95A5A6',
+  Finding:      '#C2185B',
+  Recommendation: '#8BC34A',
 };
 
 export const NODE_ICONS = {

@@ -13,11 +13,16 @@ const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false 
 
 const getEdgeColor = (relation) => {
   const rel = (relation || '').toLowerCase();
-  if (['mitigates', 'supports', 'supported_by', 'implemented_by'].includes(rel)) return '#4CAF50';
-  if (['affects', 'creates_risk', 'conflicts_with'].includes(rel)) return '#F44336';
-  if (['mandates', 'requires', 'governs'].includes(rel)) return '#2196F3';
-  if (['requires_fix'].includes(rel)) return '#FF9800';
-  return 'rgba(255, 255, 255, 0.6)';
+  // Positive / Mitigating / Resolution (Green)
+  if (['mitigates', 'supports', 'supported_by', 'implemented_by', 'complies_with', 'validates', 'addresses'].includes(rel)) return '#4CAF50';
+  // Negative / Risk / Issue (Red/Orange)
+  if (['affects', 'creates_risk', 'conflicts_with', 'impacts', 'has_risk', 'has_finding', 'requires_fix', 'causes', 'leads_to'].includes(rel)) return '#F44336';
+  // Structural / Dependency / Informational (Blue)
+  if (['mandates', 'requires', 'governs', 'depends_on', 'applies_to', 'uses', 'references', 'implements'].includes(rel)) return '#2196F3';
+  // Ownership / Monitoring (Purple/Teal)
+  if (['owned_by', 'monitors', 'monitored_by', 'audits', 'evidences'].includes(rel)) return '#9C27B0';
+  // Default (Grey)
+  return 'rgba(255, 255, 255, 0.4)';
 };
 
 export default function GraphCanvas() {
@@ -825,6 +830,33 @@ export default function GraphCanvas() {
         e.preventDefault();
         redo();
         return;
+      }
+
+      // Copy: Ctrl+C or Cmd+C
+      if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+        const nodesToCopy = state.selectedNodes || [];
+        const edgesToCopy = state.selectedEdges || [];
+        
+        if (nodesToCopy.length > 0 || edgesToCopy.length > 0) {
+          e.preventDefault();
+          const refPayload = {
+            nodes: nodesToCopy.map(n => ({ id: n.id, type: n.type, label: n.label })),
+            edges: edgesToCopy.map(edge => ({
+              source: edge.source.id || edge.source,
+              target: edge.target.id || edge.target,
+              relation: edge.relation
+            }))
+          };
+          
+          const signatureStr = `[RegChain_Reference: ${JSON.stringify(refPayload)}]`;
+          try {
+            await navigator.clipboard.writeText(signatureStr);
+            addToast(`Copied ${nodesToCopy.length} nodes and ${edgesToCopy.length} edges to clipboard`, 'success');
+          } catch (err) {
+            addToast('Failed to copy to clipboard', 'error');
+          }
+          return;
+        }
       }
 
       if (e.key === 'Delete' || e.key === 'Backspace') {

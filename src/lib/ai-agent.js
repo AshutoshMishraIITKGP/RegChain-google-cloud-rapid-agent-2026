@@ -99,7 +99,7 @@ When you finish your analysis, you MUST append a valid JSON block at the very en
 }
 \`\`\`
 IMPORTANT RULES FOR JSON:
-1. Only include the SPECIFIC node and edge IDs that were critical to your analysis.
+1. You MUST include ALL node and edge IDs that were part of your logical path or analysis chain. If you trace a path from A to B to C, you MUST include the IDs for A, B, and C in the 'visited_nodes' array, not just the starting node!
 2. WARNING: NEVER hallucinate IDs from the Chat History! You MUST only use exact IDs that are explicitly present in the CURRENT "FULL KNOWLEDGE GRAPH" provided to you. If you mention an entity, use its exact 'id' field from the graph data.
 3. CRITICAL: If you are identifying a "gap" or something missing, DO NOT invent fake IDs for the missing nodes/edges. Instead, your JSON must strictly contain the IDs of the EXISTING nodes and edges that formed the BASIS of your conclusion (i.e., the surrounding context).
 4. To traverse the graph effectively:

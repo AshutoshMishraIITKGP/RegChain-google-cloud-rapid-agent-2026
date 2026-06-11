@@ -153,6 +153,22 @@ export default function HelpModal() {
             </div>
           </section>
 
+          {/* AI Copilot: Context Referencing */}
+          <section>
+            <h3 style={{ color: 'var(--text-secondary)', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px', borderBottom: '1px solid var(--border-primary)', paddingBottom: '8px' }}>
+              AI Copilot: Context Referencing
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="help-card" style={{ gridColumn: '1 / -1' }}>
+                <div className="help-icon"><Paperclip size={16} /></div>
+                <div>
+                  <strong>Copy & Paste Graph Elements to Chat</strong>
+                  <p>You can force the AI Copilot to focus on specific nodes and edges! Select any items on the graph, press <code>Ctrl + C</code> (or <code>Cmd + C</code>) to copy them as a RegChain Reference, and then click the chat input box and press <code>Ctrl + V</code> (or <code>Cmd + V</code>) to paste them. The AI will instantly analyze the exact items you referenced!</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
           {/* AI Copilot: Build Mode */}
           <section>
             <h3 style={{ color: 'var(--text-secondary)', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px', borderBottom: '1px solid var(--border-primary)', paddingBottom: '8px' }}>

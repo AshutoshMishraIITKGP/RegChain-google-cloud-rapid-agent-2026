@@ -21,7 +21,7 @@ Today, compliance information is heavily fragmented. It exists across static PDF
 * **Lack of Visibility:** It is nearly impossible to see how a change in one IT system impacts compliance with a specific regulation.
 * **Manual Gap Analysis:** Detecting missing controls requires weeks of manual cross-referencing by expensive consultants.
 * **Static Point-in-Time Audits:** Compliance is treated as an annual sprint rather than a continuous, living state.
-* **Human Error & Blind Trust:** Errors caused by a single compliance officer can result in catastrophic financial and legal penalties. Without an interconnected, auditable system, organizations have no sure way to verify compliance—they simply have to blindly trust that manual workflows caught every edge case.
+* **Human Error & Blind Trust:** Errors caused by a single compliance officer can result in catastrophic financial and legal penalties. Without an interconnected, auditable system, organizations have no sure way to verify compliance, they simply have to blindly trust that manual workflows caught every edge case.
 
 ### How RegChain Solves the Problem
 RegChain ingests this fragmented knowledge and structures it into an interconnected Compliance Knowledge Graph. Utilizing the Google Cloud Agent Builder ecosystem (Google ADK) and Gemini 2.5 Flash, alongside an Elastic Model Context Protocol (MCP) server, RegChain acts as a dedicated AI copilot. It automatically detects gaps, proposes graph updates, maps out dependency impacts, and reasons through complex compliance queries in real-time.

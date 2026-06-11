@@ -21,30 +21,80 @@ Today, compliance information is heavily fragmented. It exists across static PDF
 * **Lack of Visibility:** It is nearly impossible to see how a change in one IT system impacts compliance with a specific regulation.
 * **Manual Gap Analysis:** Detecting missing controls requires weeks of manual cross-referencing by expensive consultants.
 * **Static Point-in-Time Audits:** Compliance is treated as an annual sprint rather than a continuous, living state.
+* **Human Error & Blind Trust:** Errors caused by a single compliance officer can result in catastrophic financial and legal penalties. Without an interconnected, auditable system, organizations have no sure way to verify compliance—they simply have to blindly trust that manual workflows caught every edge case.
 
 ### How RegChain Solves the Problem
-RegChain ingests this fragmented knowledge and structures it into an interconnected **Compliance Knowledge Graph**. Utilizing the Google Cloud Agent Builder ecosystem (Google ADK) and Gemini 2.5 Flash, alongside an Elastic Model Context Protocol (MCP) server, RegChain acts as a dedicated AI copilot. It automatically detects gaps, proposes graph updates, maps out dependency impacts, and reasons through complex compliance queries in real-time.
+RegChain ingests this fragmented knowledge and structures it into an interconnected Compliance Knowledge Graph. Utilizing the Google Cloud Agent Builder ecosystem (Google ADK) and Gemini 2.5 Flash, alongside an Elastic Model Context Protocol (MCP) server, RegChain acts as a dedicated AI copilot. It automatically detects gaps, proposes graph updates, maps out dependency impacts, and reasons through complex compliance queries in real-time.
+
+### Expected Client Behavior
+A compliance officer opens RegChain and begins by importing existing regulations, policies, implementation documents, audit reports, and related evidence into Build Mode. The AI scans these sources and proposes new nodes and relationships for the compliance graph, such as regulations, obligations, controls, risks, systems, evidence, gaps, and tasks. The officer then reviews the suggestions, edits them if needed, and approves them one by one or in batches. This keeps the system human-in-the-loop: AI accelerates the work, but the compliance officer remains in control of the final graph.
+
+Over time, the graph becomes the organization’s living compliance memory. New findings, meeting discussions, policy updates, and identified gaps can be added later as nodes and edges, allowing the graph to evolve with the business. This makes RegChain useful not just for initial setup, but for ongoing compliance operations and continuous monitoring.
+
+In Analyze Mode, the user can ask questions about the graph and immediately see the most relevant subgraph highlighted. Instead of showing an opaque answer, RegChain reveals the exact part of the graph that supports the response, along with the reasoning path used to reach it. This makes the AI explainable and auditable. Even in a large, highly interconnected graph, the user can quickly focus on the nodes and relationships that matter.
+
+Analyze Mode supports several workflows, including:
+* Compliance gap analysis
+* Impact analysis for policy or system changes
+* Hypothetical “what if” scenarios
+* Audit report generation
+* Remediation prioritization
+* Dependency tracing
+* Compliance summaries
+* Meeting brief generation
+* Risk review
+* Keyword search with connected subgraph expansion
+* Graph version review and comparison
+
+The user can also save graph state across versions, so the organization can track how the compliance model changes over time and compare one version against another.
 
 ---
 
 ## Key Features
 
-RegChain operates in two distinct modes to support both the **construction** and the **auditing** of compliance graphs.
+### The Compliance Knowledge Graph
+At the core of RegChain is the Knowledge Graph itself. It empowers users to completely visualize their entire company's workflow, infrastructure, and the legal obligations tied to them. By representing abstract legal text and internal policies as physical, interconnected nodes, users gain unprecedented clarity over how business operations map to regulatory requirements.
 
-### Build Mode
+### Build Mode: Constructing the Graph
 Build Mode is the collaborative workspace where the AI Copilot helps compliance teams actively construct and maintain the knowledge graph.
-* **AI Proposes Graph Changes:** The Gemini-powered agent continuously monitors the graph structure.
-* **Gap Detection:** Automatically identifies missing controls, missing policies, missing risks, and missing regulations.
-* **Suggestion Queue:** The AI generates structured proposals (e.g., "Add 'MFA Policy' to mitigate 'Credential Theft Risk'").
-* **Human Approval Workflow:** Suggestions are queued in a staging area where human experts can review, modify, and explicitly approve or reject graph modifications, ensuring hallucination-free compliance.
 
-### Analyze Mode
-Analyze Mode turns the knowledge graph into a powerful querying and reasoning engine for auditors and risk managers.
-* **Impact Analysis:** "If we deprecate the Legacy Auth Server, which regulatory obligations fall out of compliance?"
-* **Compliance Reasoning:** Ask complex questions in natural language. The AI traverses the graph to synthesize accurate answers.
-* **Explainable AI:** As the AI reasons, it visually highlights the exact traversal path on the graph canvas in real-time.
-* **Audit Report Generation:** One-click generation of comprehensive audit reports covering specific subgraphs or regulations.
-* **Task Prioritization:** The AI evaluates risks and missing controls to generate a prioritized remediation plan.
+* **Document-to-Graph Generation:** Import regulations, policies, audit reports, implementation documents, meeting notes, evidence records, or other compliance artifacts. The AI analyzes the content and proposes relevant nodes and relationships. Suggested entities can include regulations, obligations, controls, policies, risks, processes, systems, teams, tasks, and evidence.
+  * *Example:* Uploading an RBI circular may automatically generate RBI Digital Lending Guidelines, Customer Consent Management, Data Retention Requirements, and associated controls and risks.
+* **AI-Powered Gap Detection:** Identifies potentially missing controls, policies, regulations, risks, or ownership relationships. Detects disconnected nodes and weakly governed areas of the graph, helping uncover blind spots that may not be obvious during manual review.
+  * *Example:* A Data Breach Risk exists in the graph but no mitigating control is linked to it. The AI suggests adding an appropriate control.
+* **Human Approval Workflow:** Every AI-generated suggestion enters a staging queue. Users can review, edit, approve, or reject each recommendation individually or in bulk. This ensures human oversight, traceable changes, and a reduced risk of incorrect graph modifications.
+* **Knowledge Graph Expansion:** Add new nodes and relationships manually, or add findings from audits, meetings, incidents, regulatory updates, or risk assessments to continuously evolve the graph as the organization changes.
+  * *Example:* A new vendor onboarding procedure can be added and connected to existing compliance controls and regulations.
+* **Meeting & Audit Ingestion:** Convert meeting discussions and audit findings into structured graph elements. Transform recommendations, observations, and action items into nodes and relationships.
+  * *Example:* An audit finding can automatically generate a Risk node, a Control Gap node, and a Remediation Task node.
+* **Version History:** Save snapshots of the graph over time. Compare different versions of the compliance landscape and track how controls, risks, and regulations evolved.
+  * *Example:* Compare the graph before and after implementation of a new RBI directive.
+
+### Analyze Mode: Investigating the Graph
+Analyze Mode transforms the compliance graph into an explainable reasoning and investigation engine.
+
+* **Natural Language Compliance Queries:** Ask complex compliance questions using natural language. The AI traverses the graph to generate answers grounded in graph relationships.
+  * *Example Questions:* Which controls mitigate model bias risk? What regulations govern customer onboarding? Show all obligations connected to KYC verification.
+* **Explainable AI Reasoning:** Every analysis generates a replayable reasoning path. Relevant nodes and relationships are highlighted directly on the graph, allowing users to inspect exactly how the AI reached its conclusion.
+  * *Example:* Instead of simply stating that a regulation is affected, the AI shows the complete path from regulation → obligation → control → system → risk.
+* **Impact Analysis:** Evaluate the consequences of removing, modifying, or failing a component. Trace downstream effects across processes, controls, obligations, and regulations.
+  * *Example:* "If the Core Banking System becomes unavailable, which compliance obligations are impacted?"
+* **Compliance Gap Analysis:** Identify missing controls, policies, ownership structures, evidence, or regulatory mappings. Surface areas where compliance posture may be incomplete.
+  * *Example:* Find risks that are not mitigated by any control.
+* **Hypothetical Scenario Analysis:** Simulate incidents and proposed changes before implementation to evaluate potential compliance consequences.
+  * *Example:* "What happens if customer consent records are retained for only 30 days instead of 5 years?"
+* **Audit Report Generation:** Generate structured audit reports from any selected subgraph. Reports include findings, risks, impacts, regulatory exposure, and remediation recommendations.
+  * *Example:* Generate an audit report for all controls related to Digital Lending compliance.
+* **Remediation Prioritization:** Analyze risks and control gaps, and recommend remediation actions based on severity and impact.
+  * *Example:* Prioritize unresolved compliance issues requiring immediate attention.
+* **Dependency Tracing:** Trace relationships between regulations, obligations, controls, systems, teams, and risks to understand how compliance requirements propagate through the organization.
+  * *Example:* Identify every system affected by a specific RBI regulation.
+* **Regulatory Change Analysis:** Assess the impact of new regulations or policy updates to identify affected controls, processes, and systems.
+  * *Example:* Evaluate the impact of a newly introduced RBI cybersecurity directive.
+* **Graph Search & Investigation:** Search any node, keyword, regulation, control, or risk to automatically surface the connected subgraph for focused investigation.
+  * *Example:* Searching "KYC" highlights related regulations, obligations, systems, controls, evidence, and risks.
+* **Executive Compliance Summaries:** Generate management-ready summaries from complex graph structures, translating technical compliance relationships into business-friendly insights.
+  * *Example:* Create a board-level summary of current high-risk compliance gaps.
 
 ---
 
@@ -58,7 +108,7 @@ graph TD
     B -->|"API Calls"| C{"Next.js Backend"}
     C -->|"Multi-Step Tools & File Data"| E["@google/genai SDK (ADK Agent)"]
     E <-->|"MCP Searches & ES|QL Traversal"| F{"Elastic Agent Builder MCP"}
-    F <-->|"Direct Graph Access"| D[("Elasticsearch")]
+    F <-->|"Direct Graph Access"| D[("Elastic Cloud")]
     E -->|"Strict Output Verification"| E2["Gemini 2.5 Flash Verifier"]
     E2 -->|"Hallucination-Free JSON"| C
     C -->|"Updates Bounding Box & Edges"| B
@@ -71,12 +121,13 @@ graph TD
 
 ### Backend & Knowledge Layer
 * **Next.js API Routes:** Acts as the secure middleware connecting the frontend to the AI and Elastic layers.
-* **Elasticsearch:** Acts as the highly scalable backend storing all nodes (entities) and edges (relationships) utilizing custom `regchain-entities` and `regchain-relationships` indices.
+* **Elasticsearch (via MCP):** Acts as the highly scalable backend storing all nodes (entities) and edges (relationships) utilizing custom `regchain-entities` and `regchain-relationships` indices. Note: We no longer connect to Elasticsearch using a direct client connection for AI operations; all AI intelligence is strictly mediated by the Elastic MCP.
 
 ### AI Engine (Gemini & ADK + MCP)
 RegChain utilizes the **Google Agent Development Kit (ADK)** combined with an **Elastic Model Context Protocol (MCP)** server to orchestrate a powerful, completely autonomous multi-step reasoning agent.
+
 * **Elastic MCP Integration:** Instead of writing low-level Elasticsearch queries, our backend translates ADK tool calls into `platform_core_search` and `platform_core_execute_esql` MCP requests, ferrying them securely over Server-Sent Events (SSE) directly to the Elastic Cloud.
-* **Agent Orchestration:** The `@google/genai` library powers a multi-step loop where **Gemini 2.5 Pro** acts as the brain. It autonomously searches the graph, evaluates results, and recursively queries the knowledge base to gather complete context.
+* **Agent Orchestration & Multi-Step Thinking:** The `@google/genai` library powers an autonomous multi-step loop where **Gemini 2.5 Pro** acts as the brain. Rather than answering immediately, the Copilot pauses to "think." It actively formulates an execution plan, queries the Elastic MCP to explore graph neighborhoods, analyzes the returned JSON structures, and dynamically adjusts its traversal strategy based on intermediate findings before returning a finalized, gap-analyzed response to the user.
 * **Double-Pass Guardrails:** Every node and edge retrieved by the MCP is tracked globally. A secondary **Gemini 2.5 Flash** agent evaluates the final output strictly against this tracked MCP context, guaranteeing 0% hallucination for the UI highlights.
 * **Native Multimodality:** PDF Audit Reports and infrastructure images dropped into the Copilot are natively processed by Gemini 2.5 Pro alongside the graph context to perform instant compliance extraction.
 
@@ -86,6 +137,7 @@ RegChain utilizes the **Google Agent Development Kit (ADK)** combined with an **
 
 ### Deep Integration with Google GenAI
 RegChain is fundamentally built around the **`@google/genai` SDK** utilizing Vertex AI mappings.
+
 * **Gemini 2.5 Pro:** Used for the heavy lifting. By dumping the Elasticsearch graph directly into Gemini 2.5 Pro's massive context window, the model can instantly detect orphaned controls, trace compliance impacts, and propose new nodes without iterative tool-calling limits.
 * **Gemini 2.5 Flash:** Used as a high-speed pre-processor to translate user intents into exact Elasticsearch DSL queries.
 
@@ -118,18 +170,6 @@ The RegChain graph is highly structured, mapping the real-world complexities of 
 
 **Example Subgraph:**
 *(GDPR)* -> mandates -> *(Data Encryption Policy)* -> mandates -> *(AES-256 Control)* -> mitigates -> *(Data Breach Risk)* -> affects -> *(Core Banking System)*.
-
----
-
-## Feature Walkthrough
-
-Imagine you are a Compliance Officer joining a new fintech startup:
-
-1. **Explore the Graph:** You ask the Copilot, *"Show me all systems touching PII and their associated risks."* The graph instantly highlights the Core Banking System and flags an orphaned "Vendor Data Exfiltration" risk.
-2. **Detect Gaps:** You switch to Build Mode. The AI Copilot proactively alerts you: *"Detected Risk with no mitigating Controls. Suggestion: Add 'Third-Party Vendor Audit' control."*
-3. **Approve Changes:** You review the suggested node and its proposed edges. You click **Approve**. The graph physically updates, closing the compliance gap.
-4. **Impact Analysis:** You ask, *"What happens if we remove the Third-Party Vendor Audit control?"* The AI highlights the control in red, then visually traces a glowing path to the GDPR node, warning you of a critical compliance violation.
-5. **Generate Reports:** You type, *"Generate an executive audit report for our KYC compliance."* The Copilot traverses the KYC subgraph and outputs a formatted markdown report detailing all active controls, mitigations, and team owners.
 
 ---
 
@@ -231,39 +271,3 @@ regchain/
 ## Limitations
 
 * **Real-time Collaboration:** The current architecture supports single-user sessions per workspace. Concurrent multi-user graph editing may result in race conditions.
-
----
-
-## Future Work
-
-* **Automatic Regulation Ingestion:** Feed raw PDFs of new legislative bills directly to Gemini to automatically extract obligations and append them to the graph.
-* **Continuous Compliance Monitoring:** Integrate with AWS/GCP APIs to automatically turn nodes green/red based on live cloud infrastructure state.
-* **Compliance Simulation:** "Time travel" features to simulate compliance posture 6 months into the future based on the current remediation task backlog.
-
----
-
-## Quick Evaluation Guide for Judges
-
-Welcome, Judges! To quickly evaluate the core technical achievements of RegChain, please follow these steps:
-
-**1. Launch the Project**
-* Start the local server `npm run dev` and navigate to `localhost:3000`.
-* The physics engine will load the default graph. Notice how distinct subgraphs are repelled to prevent spaghetti-code overlaps.
-
-**2. Evaluate Graph Traversal (Analyze Mode)**
-* Open the AI Copilot on the right panel.
-* **Prompt to test:** *"Explore all KYC connections."*
-* **Expected Outcome:** Gemini will utilize the Elastic MCP to execute a neighborhood search. The graph canvas will actively highlight the path from the KYC regulation down to specific IT systems.
-
-**3. Evaluate Impact Analysis**
-* **Prompt to test:** *"What happens if we completely remove the Audit Logging System?"*
-* **Expected Outcome:** The AI will traverse upwards from the system, identifying orphaned controls and unmet regulations, returning a detailed impact radius.
-
-**4. Evaluate Graph Construction (Build Mode)**
-* **Prompt to test:** *"Suggest missing vendor management controls."*
-* **Expected Outcome:** The AI will use ADK tools to analyze the current vendor nodes, realize a gap, and queue a specific, actionable graph insertion in the "Pending Suggestions" UI.
-
-**5. Evaluate Agentic Output**
-* **Prompt to test:** *"Generate a prioritized remediation plan based on currently active risks."*
-* **Expected Outcome:** A fully formatted markdown report generated by Gemini after querying the Elastic MCP for all nodes with type `Risk` that lack a `mitigated_by` edge.
-* **Bonus Testing:** You can attach raw PDF audit reports directly in the chat to have Gemini map them into the graph.
